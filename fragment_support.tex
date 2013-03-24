@@ -1,0 +1,145 @@
+\usepackage{fixltx2e}
+
+% for \carriagereturn
+\usepackage{dingbat}
+
+%% Load float package, for enabling floating extensions
+\usepackage{float}
+
+\newfloat{listing}{tbph}{lst}[chapter]
+\floatname{listing}{Listing}
+
+\usepackage{etextools}
+\usepackage{xstring}
+\usepackage{xparse}
+
+\usepackage{listings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Code fragment support
+
+\lstset{language=C++,tabsize=2}
+\lstset{mathescape=true,escapechar=§,texcl=false}
+
+\newcommand{\listingsUseFancyLineBreaks}{%
+	\lstset{%
+	%	prebreak={\raisebox{-1ex}[0ex][0ex]{\carriagereturn}},%
+	%	postbreak={\raisebox{0ex}[0ex][0ex]{\ensuremath{\rcurvearrowse\space}}},%
+		breaklines,%
+		breakatwhitespace,%
+		breakindent=10pt,%
+		breakautoindent=true%
+	}%
+}
+
+\newcommand{\listingsUseFancyFonts}{%
+	\newcommand{\myListingBasicStyle}{\ttfamily\fontsize{9pt}{10pt}\selectfont}%
+	\lstset{columns=flexible,basicstyle={\myListingBasicStyle},fontadjust=true}%
+}
+\listingsUseFancyFonts
+
+\newcommand{\listingsSpacing}{%
+	\lstset{abovecaptionskip=0pt,belowcaptionskip=0pt}%
+	\lstset{aboveskip=\smallskipamount,belowskip=\medskipamount}%
+}
+
+\lstMakeShortInline[breaklines,breakindent=0pt,breakautoindent=false,breakatwhitespace]§
+
+\lstnewenvironment{fancylisting}{%
+	\listingsSpacing%
+	\listingsUseFancyLineBreaks%
+}{%
+	\ignorespacesafterend%
+}
+
+\newcommand{\createFragmentLabel}[1]{%
+  \lowercase{\def\fragmentLabelName{#1}}%
+  \StrSubstitute{\fragmentLabelName}{,}{-}[\fragmentLabelName]%
+  \StrSubstitute{\fragmentLabelName}{ }{-}[\fragmentLabelName]%
+  \StrSubstitute{\fragmentLabelName}{\ }{-}[\fragmentLabelName]%
+  %\fragmentLabelName%
+}
+
+\newcommand{\createFragmentFileLabel}[1]{%
+  %\lowercase{\def\fragmentFileLabel{#1}}%
+  \def\fragmentFileLabel{#1}%
+  \StrSubstitute{\fragmentFileLabel}{ }{\ }[\fragmentFileLabel]%
+  \StrSubstitute{\fragmentFileLabel}{-}{..}[\fragmentFileLabel]%
+}
+
+\newcommand*{\putFragmentName}[1]{{\myListingBasicStyle$\langle$\textit{#1}$\rangle$}}
+\newcommand*{\putFragmentRefs}[1]{{\textnormal{\bfseries \scriptsize #1}}}
+\lstnewenvironment{fragment}
+	[2][]
+	{%
+%		\begingroup%
+		\createFragmentLabel{fragment:#2}%
+		\listingsUseFancyLineBreaks%
+		\listingsSpacing%
+		\lstset{title={\putFragmentName{#2}\label{\fragmentLabelName}#1$\equiv$\hspace*{\fill}}}%
+%		\endgroup%
+	}
+	{}
+
+% {prefix}{name}{file}{fileLabel}{refLabel}
+\newcommand*{\fileFragmentHelper}[5]{%
+	%{%
+	\listingsUseFancyLineBreaks%
+	\listingsSpacing%
+	\lstinputlisting[%
+		rangebeginprefix=//<,rangebeginsuffix=>\ =,%
+		rangeendprefix=//<,rangeendsuffix=>,%
+		includerangemarker=false,%
+		linerange={#4}-end,%
+		title={\putFragmentName{#2}#1$\equiv$\hspace*{\fill}},%
+		label=#5%
+	]{#3}%
+	%}%
+	%\ignorespacesafterend%
+}
+
+% {fragment}{file}
+\newcommand*{\fileFragment}[2]{%
+	%\begingroup%
+	\createFragmentLabel{fragment:#1}%
+	\createFragmentFileLabel{#1}%
+	%\\refLabel:\fragmentLabelName\\fileLabel:\fragmentFileLabel
+	\expandnexttwo{\fileFragmentHelper{}{#1}{#2}}{\fragmentFileLabel}{\fragmentLabelName}%
+	%\endgroup%
+}
+
+% {prefix}{name}{tag}{file}
+\newcommand*{\taggedFileFragment}[4]{%
+	%\begingroup%
+	\createFragmentLabel{fragment:#2-#3}%
+	\createFragmentFileLabel{#2;#3}%
+	%\\refLabel:\fragmentLabelName\\fileLabel:\fragmentFileLabel
+	\expandnexttwo{\fileFragmentHelper{#1}{#2}{#4}}{\fragmentFileLabel}{\fragmentLabelName}%
+	%\endgroup%
+}
+
+
+% nice syntax
+\def\defFileFragment<#1>#2{\fileFragment{#1}{#2}}
+\def\defTaggedFileFragment<#1;#2>#3=#4{\taggedFileFragment{#3}{#1}{#2}{#4}}
+
+% even nicer syntax
+\newcommand{\setCurrentFragmentFile}[1]{\def\currentFragmentFile{#1}}
+\def\defCurrentFileFragment<#1>{\expandnext{\defFileFragment<#1>}{\currentFragmentFile}}
+\def\defTaggedCurrentFileFragment<#1;#2>#3={\expandnext{\taggedFileFragment{#3}{#1}{#2}}{\currentFragmentFile}}
+
+% we only want to pageref fragment's that have actually been defined..
+\makeatletter
+\newcommand{\fragmentSafePageRef}[1]{%
+	\begingroup%
+		\createFragmentLabel{fragment:#1}%
+		%\fragmentLabelName\\
+		\expandafter\@ifundefined{r@\fragmentLabelName}{\relax}{ \putFragmentRefs{\pageref{\fragmentLabelName}}}%
+    \endgroup%
+}
+
+\makeatother
+
+\def\refFragment<#1>{%
+	\putFragmentName{#1\fragmentSafePageRef{#1}}%
+}

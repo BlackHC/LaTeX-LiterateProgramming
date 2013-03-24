@@ -1,0 +1,101 @@
+\documentclass[twoside,11pt,a4paper]{memoir}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+
+% fragment support
+\input{fragment_support}
+
+\sideparmargin{outer}
+\setlrmarginsandblock{1.08in}{1.5in}{*}
+\setmarginnotes{0.1in}{1.3in}{7pt}
+\checkandfixthelayout
+
+% comment that appears on the border - very practical !!!
+\newcommand{\marginComment}[1]{\marginpar{\raggedright \noindent \footnotesize #1 }}
+%\newcommand{\marginComment}[1]{}
+
+\begin{document}
+
+\mainmatter
+
+\section{Inline fragments}
+It is possible to insert inline code listings by wrapping them with the paragraph character §int *pointer = nullptr;§.
+It is equally simple to create a fragment using a §\begin{fragment}{NAME}§ block. You can reference a fragment using §\refFragment<NAME>§. To insert \LaTeX{} code inside a block, wrap it with the paragraph character.
+\marginComment{Notice the page number of the referenced fragment's definition next to its fragment label in the reference.}
+\begin{fragment}{A fragment}
+	pointer++;
+	§\refFragment<A fragment>§
+}
+\end{fragment}
+It is possible to reference undefined fragments as well.
+\marginComment{If a referenced fragment is not defined anywhere, we don't try to display a page number.}
+\begin{fragment}{Another fragment}
+void main() {
+	§\refFragment<Undefined fragment>§
+}
+\end{fragment}
+For completeness' sake, you can specify a prefix to customize definitions. \\
+Use §\begin{fragment}[PREFIX]{NAME}§.
+\begin{fragment}[+]{A fragment}
+	pointer--;
+\end{fragment}
+
+\section{File fragments}
+It's nice to separate the source code from the \LaTeX{} code. Especially if you want to refactor or change the code later. For this, there are several commands to include external code.
+\marginComment{UTF8 encoding doesn't work well. Save the external source using eg Windows 1252 encoding.}
+\fileFragment{A file fragment}{sourceFragments.cpp}
+The fragment looks like this in §sourceFragments.cpp§:
+\marginComment{I have replaced the paragraph character with ¶ in the listing because I cannot display it.}
+\begin{fancylisting}
+//<A file fragment> =
+void main() {
+	// do something
+	¶\refFragment<A fragment>¶
+}
+//<end>
+\end{fancylisting}
+The simplest command to include a file fragment is §\fileFragment{FRAGMENT}{FILENAME}§. Alternatively you can use §\defFileFragment<FRAGMENT>{FILENAME}§.
+\defFileFragment<Another file fragment>{sourceFragments.cpp}
+
+Usually you are going to include many different fragments from the same file, and there is an even nicer syntax for this: You can set a "current" file using §\setCurrentFragmentFile{FILENAME}§ and then include fragments using §\defCurrentFileFragment<FRAGMENT>§.
+\setCurrentFragmentFile{sourceFragments.cpp}
+\defCurrentFileFragment<A file fragment>
+\defCurrentFileFragment<Another file fragment>
+This was created using
+\begin{fancylisting}
+\setCurrentFragmentFile{sourceFragments.cpp}
+\defCurrentFileFragment<A file fragment>
+\defCurrentFileFragment<Another file fragment>
+\end{fancylisting}
+Last but not least, there is also support for prefixes:
+\defTaggedCurrentFileFragment<Another file fragment;recursive>+=
+%\defTaggedFileFragment<Another file fragment;recursive>+={sourceFragments.cpp}
+%\taggedFileFragment{+}{Another file fragment}{recursive}{sourceFragments.cpp}
+Since this fragment has the same name as an already existing fragment, we can't identify it in the external file just using that name. Instead we support an additional hidden tag.
+\begin{fancylisting}
+//<Another file fragment;recursive> =
+int fac_r( int n ) {
+	if( n <= 1 ) {
+		return 1;
+	}
+	return n * fac_r( n - 1 );
+}
+//<end>
+\end{fancylisting}
+To display the fragment above the following commands could be used (either one of them):
+\defTaggedFileFragment<Another file fragment;recursive>+={sourceFragments.cpp}
+\begin{fancylisting}
+\defTaggedFileFragment<Another file fragment;recursive>+={sourceFragments.cpp}
+\defTaggedCurrentFileFragment<Another file fragment;recursive>+=
+\taggedFileFragment{+}{Another file fragment}{recursive}{sourceFragments.cpp}
+\end{fancylisting}
+The general syntax is:
+\begin{fancylisting}
+\defTaggedFileFragment<FRAGMENT;TAG>PREFIX={FILENAME}
+\defTaggedCurrentFileFragment<FRAGMENT;TAG>PREFIX=
+\taggedFileFragment{PREFIX}{FRAGMENT}{TAG}{FILENAME}
+\end{fancylisting}
+
+\end{document}
+
